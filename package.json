@@ -1,0 +1,28 @@
+{
+  "name": "the-gift-economy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "truffle.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "openzeppelin-solidity": "^2.2.0",
+    "solc": "^0.5.2",
+    "truffle": "^5.0.10"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ana0/TheGiftEconomy.git"
+  },
+  "author": "ana0",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ana0/TheGiftEconomy/issues"
+  },
+  "homepage": "https://github.com/ana0/TheGiftEconomy#readme"
+}
