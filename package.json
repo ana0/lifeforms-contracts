@@ -1,5 +1,5 @@
 {
-  "name": "the-gift-economy",
+  "name": "lifeforms-contracts",
   "version": "1.0.0",
   "description": "",
   "main": "truffle.js",
@@ -7,20 +7,22 @@
     "test": "test"
   },
   "dependencies": {
-    "openzeppelin-solidity": "^2.2.0"
+    "truffle": "^5.1.66"
   },
-  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "scripts/test.sh",
+    "migrate": "./node_modules/.bin/truffle migrate",
+    "compile": "./node_modules/.bin/truffle compile",
+    "ganache": "ganache-cli -d -i 5777 --gasLimit 0xfffffffffff -m \"enable depend figure right kit daughter job giraffe news window tonight more\""
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ana0/TheGiftEconomy.git"
+    "url": "git+https://github.com/ana0/lifeforms-contracts.git"
   },
   "author": "ana0",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ana0/TheGiftEconomy/issues"
+    "url": "https://github.com/ana0/lifeforms-contracts/issues"
   },
-  "homepage": "https://github.com/ana0/TheGiftEconomy#readme"
+  "homepage": "https://github.com/ana0/lifeforms-contracts#readme"
 }
