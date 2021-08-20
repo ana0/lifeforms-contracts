@@ -1,6 +1,6 @@
 {
   "name": "lifeforms-contracts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Contracts for lifeforms, a series of NFT-based entities\"",
   "main": "truffle-config.js",
   "directories": {
