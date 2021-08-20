@@ -86,7 +86,8 @@ contract Lifeforms is Ownable, ERC721, ContextMixin, NativeMetaTransaction {
         _mint(to, tokenId);
     }
 
-    function safeBirth(address to, uint256 tokenId) public {
+    function safeBirth(address to, uint256 tokenId) public payable {
+        require(msg.value >= price, "Insufficient funds");
         _birth(tokenId);
         _safeMint(to, tokenId);
     }
@@ -159,6 +160,14 @@ contract Lifeforms is Ownable, ERC721, ContextMixin, NativeMetaTransaction {
             return tokenId;
         } else {
             return 0;
+        }
+    }
+
+    function getLifeform(uint256 tokenId) public view virtual returns (string memory, address, uint256, uint256) {
+        if (isAlive(tokenId)) {
+            return (tokenURI(tokenId), ownerOf(tokenId), tokenBirth[tokenId], tokenOwnerBeginning[tokenId]);
+        } else {
+            return ("", address(0), 0, 0);
         }
     }
 
