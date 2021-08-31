@@ -18,6 +18,9 @@ contract Lifeforms is Ownable, ERC721, ContextMixin, NativeMetaTransaction {
     // Mapping from token ID to duration of this ownership period
     mapping (uint256 => uint) public tokenOwnerBeginning;
 
+    // Mapping from token ID to blockhash at birth
+    mapping (uint256 => bytes32) public seed;
+
     // Mapping from holder address to their (enumerable) set of owned tokens
     mapping (address => EnumerableSet.UintSet) private _holderTokens;
 
@@ -73,11 +76,9 @@ contract Lifeforms is Ownable, ERC721, ContextMixin, NativeMetaTransaction {
     }
 
     function _birth(uint256 tokenId) internal {
-        // if (isDead(tokenId)) {
-        //     _burn(tokenId);
-        // }
         tokenBirth[tokenId] = block.timestamp;
         tokenOwnerBeginning[tokenId] = block.timestamp;
+        seed[tokenId] = blockhash(block.number);
     }
 
     function birth(address to, uint256 tokenId) public payable {
@@ -93,29 +94,29 @@ contract Lifeforms is Ownable, ERC721, ContextMixin, NativeMetaTransaction {
     }
 
     function transferFrom(address from, address to, uint256 tokenId) public override {
-        if (from != to) {
-            tokenOwnerBeginning[tokenId] = block.timestamp;
-        }
         if (!isDead(tokenId)) {
             super.transferFrom(from, to, tokenId);
+            if (from != to) {
+                tokenOwnerBeginning[tokenId] = block.timestamp;
+            }
         }
     }
 
     function safeTransferFrom(address from, address to, uint256 tokenId) public override {
-        if (from != to) {
-            tokenOwnerBeginning[tokenId] = block.timestamp;
-        }
         if (!isDead(tokenId)) {
             super.safeTransferFrom(from, to, tokenId);
+            if (from != to) {
+                tokenOwnerBeginning[tokenId] = block.timestamp;
+            }
         }
     }
 
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public virtual override {
-        if (from != to) {
-            tokenOwnerBeginning[tokenId] = block.timestamp;
-        }
         if (!isDead(tokenId)) {
             super.safeTransferFrom(from, to, tokenId, _data);
+            if (from != to) {
+                tokenOwnerBeginning[tokenId] = block.timestamp;
+            }
         }
     }
 
@@ -146,6 +147,14 @@ contract Lifeforms is Ownable, ERC721, ContextMixin, NativeMetaTransaction {
         }
     }
 
+    function getSeed(uint256 tokenId) public view virtual returns (bytes32) {
+        if (isAlive(tokenId)) {
+            return seed[tokenId];
+        } else {
+            return bytes32("");
+        }
+    }
+
     function tokenOfOwnerByIndex(address owner, uint256 index) public view virtual override returns (uint256) {
         if (isAlive(_holderTokens[owner].at(index))) {
             super.tokenOfOwnerByIndex(owner, index);
@@ -163,11 +172,11 @@ contract Lifeforms is Ownable, ERC721, ContextMixin, NativeMetaTransaction {
         }
     }
 
-    function getLifeform(uint256 tokenId) public view virtual returns (string memory, address, uint256, uint256) {
+    function getLifeform(uint256 tokenId) public view virtual returns (string memory, address, uint256, uint256, bytes32) {
         if (isAlive(tokenId)) {
-            return (tokenURI(tokenId), ownerOf(tokenId), tokenBirth[tokenId], tokenOwnerBeginning[tokenId]);
+            return (tokenURI(tokenId), ownerOf(tokenId), tokenBirth[tokenId], tokenOwnerBeginning[tokenId], seed[tokenId]);
         } else {
-            return ("", address(0), 0, 0);
+            return ("", address(0), 0, 0, bytes32(0));
         }
     }
 
