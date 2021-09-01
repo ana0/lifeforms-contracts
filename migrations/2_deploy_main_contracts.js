@@ -1,6 +1,6 @@
 const truffleContract = require('@truffle/contract');
 
-const Lifeforms = artifacts.require('Lifeforms');
+const Lifeforms = artifacts.require('Lifeforms2');
 const EnumerableSetArtifacts = require('@openzeppelin/contracts/build/contracts/EnumerableSet.json');
 const EnumerableMapArtifacts = require('@openzeppelin/contracts/build/contracts/EnumerableMap.json');
 
@@ -16,8 +16,9 @@ module.exports = async function (deployer, network, accounts) {
   await deployer.link(EnumerableMap, Lifeforms);
   return deployer.deploy(Lifeforms, 'Lifeforms', 'LIFE', 3600, web3.utils.toWei('10'), { from: accounts[0] })
     .then(async (lifeforms) => {
-      await lifeforms.setBaseURI('https://isthisa.computer/ipfs/');
+      await lifeforms.setBaseURI('https://isthisa.computer/api/lifeforms/');
       await lifeforms.setContractURI('https://isthisa.computer/ipfs/QmXquYVrt7pvJ6yAZq4BtKnbjwoagpfbpwn6MMeCYnq8JM/off-contract.json');
+      await lifeforms.setIsOpen(true);
       await lifeforms.birth(accounts[0], 1, { from: accounts[0], value: web3.utils.toWei('10') });
     });
 };
