@@ -68,6 +68,7 @@ contract Lifeforms2 is Context, ERC165, IERC721, IERC721Metadata, Ownable, Conte
     uint256 public price;
     string public contractURI;
     bool public isOpen;
+    address public gravedigger;
 
     /*
      *     bytes4(keccak256('balanceOf(address)')) == 0x70a08231
@@ -120,8 +121,17 @@ contract Lifeforms2 is Context, ERC165, IERC721, IERC721Metadata, Ownable, Conte
         _registerInterface(_INTERFACE_ID_ERC721_ENUMERABLE);
     }
 
+    modifier onlyGravedigger() {
+        require(msg.sender == gravedigger, "Must be gravedigger");
+        _;
+    }
+
     function setPrice(uint256 price_) public onlyOwner {
         price = price_;
+    }
+
+    function setGravedigger(address gravedigger_) public onlyOwner {
+        gravedigger = gravedigger_;
     }
 
     function setDuration(uint256 duration_) public onlyOwner {
@@ -188,6 +198,11 @@ contract Lifeforms2 is Context, ERC165, IERC721, IERC721Metadata, Ownable, Conte
         _birth(tokenId);
     }
 
+    function gravediggerCleanup(uint256 tokenId) public onlyGravedigger {
+        require(isDead(tokenId), "Can only clean up dead lifeforms");
+        _burn(tokenId);
+    }
+
     /**
      * @dev See {IERC721-balanceOf}.
      */
@@ -210,6 +225,10 @@ contract Lifeforms2 is Context, ERC165, IERC721, IERC721Metadata, Ownable, Conte
         } else {
             return address(0);
         }
+    }
+
+    function _ownerOf(uint256 tokenId) internal view returns (address) {
+        return _tokenOwners.get(tokenId, "ERC721: owner query for nonexistent token");
     }
 
     /**
@@ -267,37 +286,6 @@ contract Lifeforms2 is Context, ERC165, IERC721, IERC721Metadata, Ownable, Conte
     function baseURI() public view virtual returns (string memory) {
         return _baseURI;
     }
-
-    /**
-     * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
-     */
-    // function tokenOfOwnerByIndex(address owner, uint256 index) public view virtual override returns (uint256) {
-    //     if (isAlive(_holderTokens[owner].at(index))) {
-    //         return _holderTokens[owner].at(index);
-    //     } else {
-    //         return 0;
-    //     }
-    // }
-
-    /**
-     * @dev See {IERC721Enumerable-totalSupply}.
-     */
-    // function totalSupply() public view virtual override returns (uint256) {
-    //     // _tokenOwners are indexed by tokenIds, so .length() returns the number of tokenIds
-    //     return _tokenOwners.length();
-    // }
-
-    /**
-     * @dev See {IERC721Enumerable-tokenByIndex}.
-     */
-    // function tokenByIndex(uint256 index) public view virtual override returns (uint256) {
-    //     (uint256 tokenId, ) = _tokenOwners.at(index);
-    //     if (isAlive(tokenId)) {
-    //         return tokenId;
-    //     } else {
-    //         return 0;
-    //     }
-    // }
 
     function tokenOwnerBeginning(uint256 tokenId) public view virtual returns (uint256) {
         if (isAlive(tokenId)) {
@@ -520,7 +508,7 @@ contract Lifeforms2 is Context, ERC165, IERC721, IERC721Metadata, Ownable, Conte
      * Emits a {Transfer} event.
      */
     function _burn(uint256 tokenId) internal virtual {
-        address owner = Lifeforms2.ownerOf(tokenId); // internal owner
+        address owner = Lifeforms2._ownerOf(tokenId); // internal owner
 
         _beforeTokenTransfer(owner, address(0), tokenId);
 

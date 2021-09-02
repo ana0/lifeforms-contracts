@@ -14,6 +14,7 @@ const {
 } = require('./helpers/assertRevert');
 const { getTimestampFromTx } = require('./helpers/getTimestamp');
 const { increase } = require('./helpers/increaseTime');
+const expectEvent = require('./helpers/expectEvent');
 
 const Lifeforms = artifacts.require('Lifeforms2');
 
@@ -70,6 +71,15 @@ contract('Lifeforms', ([_, systemOwner, attacker, owner, secondOwner]) => { // e
 
   it('attacker can not set contractUri', async () => {
     await assertRevert(lifeforms.setContractURI(baseUri, { from: attacker }));
+  });
+
+  it('owner can set gravedigger', async () => {
+    await lifeforms.setGravedigger(secondOwner, { from: systemOwner });
+    (await lifeforms.gravedigger()).should.be.equal(secondOwner);
+  });
+
+  it('attacker can not set gravedigger', async () => {
+    await assertRevert(lifeforms.setGravedigger(secondOwner, { from: attacker }));
   });
 
   it('should successfully birth a lifeform', async () => {
@@ -193,6 +203,64 @@ contract('Lifeforms', ([_, systemOwner, attacker, owner, secondOwner]) => { // e
     (await lifeforms.ownerOf(tokenId)).should.be.equal(ZERO_ADDRESS);
   });
 
+  it('transferring in time keeps lifeform alive', async () => {
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(18);
+    await lifeforms.transferFrom(owner, secondOwner, tokenId, { from: owner });
+    await increase(18);
+    (await lifeforms.isAlive(tokenId)).should.be.equal(true);
+  });
+
+  it('transferring in time keeps lifeform alive with correct owner', async () => {
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(18);
+    await lifeforms.transferFrom(owner, secondOwner, tokenId, { from: owner });
+    await increase(18);
+    (await lifeforms.ownerOf(tokenId)).should.be.equal(secondOwner);
+  });
+
+  it('gravedigger can cleanup when lifeform is dead', async () => {
+    await lifeforms.setGravedigger(secondOwner, { from: systemOwner });
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(21);
+    await lifeforms.gravediggerCleanup(tokenId, { from: secondOwner });
+    (await lifeforms.ownerOf(tokenId)).should.be.equal(ZERO_ADDRESS);
+  });
+
+  it('attacker can not cleanup when lifeform is dead', async () => {
+    await lifeforms.setGravedigger(secondOwner, { from: systemOwner });
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(21);
+    assertRevert(lifeforms.gravediggerCleanup(tokenId, { from: attacker }));
+  });
+
+  it('gravedigger can cleanup when lifeform is alive', async () => {
+    await lifeforms.setGravedigger(secondOwner, { from: systemOwner });
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(18);
+    assertRevert(lifeforms.gravediggerCleanup(tokenId, { from: secondOwner }));
+  });
+
+  it('attacker can not cleanup when lifeform is alive', async () => {
+    await lifeforms.setGravedigger(secondOwner, { from: systemOwner });
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(18);
+    assertRevert(lifeforms.gravediggerCleanup(tokenId, { from: attacker }));
+  });
+
+  it('gravedigger cleanup emits burn event', async () => {
+    await lifeforms.setGravedigger(secondOwner, { from: systemOwner });
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(21);
+    await lifeforms.gravediggerCleanup(tokenId, { from: secondOwner });
+    const logs = await lifeforms.getPastEvents('Transfer', { fromBlock: 0, toBlock: 'latest' });
+    const event = expectEvent.inLogs(logs, 'Transfer', {
+      to: ZERO_ADDRESS,
+    });
+
+    return event.args.from.should.equal(owner);
+  });
+
   it('user birthing token leaves eth in contract', async () => {
     await lifeforms.birth(owner, tokenId, { from: owner, value: price });
     (await web3.eth.getBalance(lifeforms.address)).should.be.bignumber.equal(bn(price));
@@ -213,6 +281,19 @@ contract('Lifeforms', ([_, systemOwner, attacker, owner, secondOwner]) => { // e
   it('should not return lifeform information after death', async () => {
     await lifeforms.birth(owner, tokenId, { from: owner, value: price });
     await increase(21);
+    const lifeform = await lifeforms.getLifeform(tokenId);
+    lifeform[0].should.be.equal('');
+    lifeform[1].should.be.equal(ZERO_ADDRESS);
+    lifeform[2].should.be.bignumber.equal(bn(0));
+    lifeform[3].should.be.bignumber.equal(bn(0));
+    lifeform[4].should.be.equal(ZERO_HASH);
+  });
+
+  it('should not return lifeform information after gravedigger cleanup', async () => {
+    await lifeforms.setGravedigger(secondOwner, { from: systemOwner });
+    await lifeforms.birth(owner, tokenId, { from: owner, value: price });
+    await increase(21);
+    await lifeforms.gravediggerCleanup(tokenId, { from: secondOwner });
     const lifeform = await lifeforms.getLifeform(tokenId);
     lifeform[0].should.be.equal('');
     lifeform[1].should.be.equal(ZERO_ADDRESS);
@@ -247,39 +328,4 @@ contract('Lifeforms', ([_, systemOwner, attacker, owner, secondOwner]) => { // e
     await lifeforms.ownerBirth(systemOwner, tokenId, { from: systemOwner });
     (await lifeforms.balanceOf(systemOwner)).should.be.bignumber.equal(bn(1));
   });
-
-  // it('should return correct tokenOfOwnerByIndex when alive', async () => {
-  //   await lifeforms.birth(owner, tokenId, { from: owner, value: price });
-  //   (await lifeforms.tokenOfOwnerByIndex(owner, 0)).should.be.bignumber.equal(bn(1));
-  // });
-
-  // it('should return correct tokenOfOwnerByIndex after death', async () => {
-  //   await lifeforms.birth(owner, tokenId, { from: owner, value: price });
-  //   await increase(21);
-  //   (await lifeforms.tokenOfOwnerByIndex(owner, 0)).should.be.bignumber.equal(bn(0));
-  // });
-
-  // it('should return correct tokenByIndex when alive', async () => {
-  //   await lifeforms.birth(owner, tokenId, { from: owner, value: price });
-  //   (await lifeforms.tokenByIndex(0)).should.be.bignumber.equal(bn(1));
-  // });
-
-  // it('should return correct tokenByIndex after death', async () => {
-  //   await lifeforms.birth(owner, tokenId, { from: owner, value: price });
-  //   await increase(21);
-  //   (await lifeforms.tokenByIndex(0)).should.be.bignumber.equal(bn(0));
-  // });
-
-  // it('should return correct tokenByIndex after death', async () => {
-  //   (await lifeforms.tokenByIndex(10)).should.be.bignumber.equal(bn(0));
-  // });
-
-  // it('should return correct totalsupply', async () => {
-  //   (await lifeforms.totalSupply()).should.be.bignumber.equal(bn(0));
-  // });
-
-  // it('should return correct totalsupply when a lifefrom has been born', async () => {
-  //   await lifeforms.birth(owner, tokenId, { from: owner, value: price });
-  //   (await lifeforms.totalSupply()).should.be.bignumber.equal(bn(1));
-  // });
 });
