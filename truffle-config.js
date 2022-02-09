@@ -31,7 +31,7 @@ module.exports = {
       ),
       network_id: 137,
       confirmations: 2,
-      timeoutBlocks: 200,
+      timeoutBlocks: 1000,
       skipDryRun: false,
     },
     // Another network with more advanced options...
